@@ -21,6 +21,8 @@
                     <button onclick="copyIndex()" class="btn btn-primary btn-lg">Копировать index.html</button>
                     <button onclick="copyLogin()" class="btn btn-success btn-lg">Копировать login.html</button>
                     <button onclick="copySignup()" class="btn btn-warning btn-lg">Копировать signup.html</button>
+                    <button onclick="copyView()" class="btn btn-danger btn-lg">Копировать app1/views.py </button>
+                    <button onclick="copyBase()" class="btn btn-info btn-lg">Копировать body base.html </button>
                 </div>
 
                 <div id="message" class="mt-4 fw-bold fs-5" style="min-height: 40px;"></div>
@@ -128,7 +130,99 @@
   </div>
 {% endblock %}`;
 
+const viewcode = `
+from django.shortcuts import render, redirect
+from .models import *
+from django.contrib.auth.models import User 
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+def signup(request):
+    if request.user.is_authenticated:
+        return redirect('/')
+    if request.method == 'POST':
+        username = request.POST['username']
+        email = request.POST['email']
+        first_name = request.POST['first_name']
+        password = request.POST['password']
+        confirm_password = request.POST['confirm_password']
+        if password != confirm_password:
+            messages.error(request, 'Пароли не совпадают')
+            return redirect('signup')
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Логин уже занят')
+            return redirect('signup')
+        phone = request.POST['phone']
+        user = User.objects.create_user(username, email, password)
+        user.first_name = first_name
+        user.save()
+        profile = Employee.objects.create(user=user, phone=phone)
+        profile.save()
+        return redirect('/login')
+    return render(request, 'signup.html')
+def login_auth(request):
+    if request.user.is_authenticated:
+        return redirect('/')
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('/')
+        else:
+            messages.error(request, 'Неправильный логин или пароль')
+            return render(request, 'login.html')
+    return render(request, 'login.html')
 
+def logout_auth(request):
+    logout(request)
+    return redirect('/')
+def index(request):
+    return render(request, 'index.html')
+`
+const baseCode = 
+`<header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+          <div class="container-fluid">
+            <a class="navbar-brand" href="/"><img src="{% static 'media/img/2.jpg'%}" width="50" alt=""></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+              <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                  <a class="nav-link active" aria-current="page" href="/">Главная страница</a>
+                </li>
+                  {% if user.is_authenticated%}
+                <li class="nav-item">
+                  <a class="nav-link" href="#">Добро пожаловать, {{request.user}}</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'logout'%}" tabindex="-1" aria-disabled="true">Выход</a>
+                </li>
+                  {% else %}
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'signup' %}" tabindex="-1" aria-disabled="true">Регистрация</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{% url 'login' %}" tabindex="-1" aria-disabled="true">Вход</a>
+                  </li>
+                  {% endif %}
+                  {% if user.is_superuser %}
+                  <li class="nav-item">
+                    <a class="nav-link" href="/admin" tabindex="-1" aria-disabled="true">Админ панель</a>
+                  </li>
+                  {% endif %}
+              </ul>
+            </div>
+          </div>
+        </nav>
+    </header>
+    <main>
+        {% block body %} {% endblock %}
+    </main>
+`
     function copyCode(name, code) {
         const textarea = document.createElement("textarea");
         textarea.value = code;
@@ -152,6 +246,7 @@
     function copyIndex()  { copyCode("index.html", indexCode); }
     function copyLogin()  { copyCode("login.html", loginCode); }
     function copySignup() { copyCode("signup.html", signupCode); }
+    function copyView()   { copyCode("app1/views.py", viewcode); }
     function copyBase()   { copyCode("base.html", baseCode); }
 
     function showMessage(text, isError = false) {
